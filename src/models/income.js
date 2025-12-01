@@ -36,6 +36,10 @@ module.exports = (sequelize, DataTypes) => {
       part_num: DataTypes.STRING,
       admin_id: DataTypes.INTEGER,
       comment: DataTypes.STRING,
+      checked: {
+        type: DataTypes.INTEGER,
+        defaultValue: 1,
+      },
       date: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,

@@ -10,6 +10,7 @@ require("./commands/login.command");
 require("./commands/expense.command");
 require("./commands/cancel.command");
 require("./commands/income.command");
+require("./commands/records.command");
 // DB CONNECTION
 connectDB();
 // RUNNING THE BOT

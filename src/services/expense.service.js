@@ -1,10 +1,14 @@
 const { InlineKeyboard } = require("grammy");
+const { bot } = require("../config/botResource");
 const { SpendingCategory, User, Spending } = require("../models");
 const {
   cancelKeyboard,
   mainKeyboard,
   confirmCancelKeyboard,
 } = require("../services/keyboards.service");
+
+const { updateCurrentBalance } = require("../utils/helper");
+const dayjs = require("dayjs");
 
 async function addExpense(conversation, ctx) {
   const inlineKeyboard = new InlineKeyboard()
@@ -120,6 +124,10 @@ async function addExpense(conversation, ctx) {
     user_id = null;
   }
 
+  const user = await User.findOne({
+    where: { id: user_id },
+  });
+
   // HERE WE LET USERS TO CHOOSE CATEGORIES FOR EACH NEW EXPENSE
   const categories = await SpendingCategory.findAll();
   let catLabels = new InlineKeyboard();
@@ -136,9 +144,13 @@ async function addExpense(conversation, ctx) {
   const category = await conversation.waitForCallbackQuery();
   let category_id = category.update.callback_query.data;
 
+  const spendingCat = await SpendingCategory.findOne({
+    where: { id: category_id },
+  });
+
   // NOW WE SHOULD DEFINE WHO ADDED THIS NEW EXPENSE,
   const chatId = ctx.message.chat.id;
-  const user = await User.findOne({
+  const adminData = await User.findOne({
     where: {
       chatId,
     },
@@ -162,12 +174,11 @@ async function addExpense(conversation, ctx) {
   const body = {
     [expenseType]: cleanAmount,
     comment,
-    admin_id: user.id,
+    admin_id: adminData.id,
     staff_id: user_id,
     date,
     category_id,
   };
-  console.log("body ", body);
 
   await ctx.reply("❓ *Yangi CHIQIM qoshilsinmi?*", {
     parse_mode: "Markdown",
@@ -187,7 +198,45 @@ async function addExpense(conversation, ctx) {
   }
 
   if (confirmText === "✅ Tasdiqlash") {
-    await Spending.create(body);
+    const newExpense = await Spending.create(body);
+
+    const formattedDate = dayjs(newExpense.date).format("DD.MM.YYYY HH:mm");
+    // update current balance
+    updateCurrentBalance(newExpense, false);
+    // SEND MESSAGES TO EMPLOYEES
+    const fieldsToCheck = ["usd_cash", "card", "account", "uzs_cash"];
+    let enteredAmounts = [];
+
+    for (let field of fieldsToCheck) {
+      const value = newExpense[field];
+      if (value && parseFloat(value) !== 0) {
+        const label =
+          field === "usd_cash"
+            ? "💵 USD"
+            : field === "uzs_cash"
+            ? "🇺🇿 So'm"
+            : field === "card"
+            ? "💳 Karta"
+            : field === "account"
+            ? "🏢 Hisob"
+            : "❓";
+        enteredAmounts.push(`${label}: ${parseFloat(value)}`);
+      }
+    }
+
+    const text =
+      `💸 Toʻlov amalga oshirildi!\n\n` +
+      `📅 Sana: *${formattedDate}*\n\n` +
+      (enteredAmounts.length
+        ? enteredAmounts.map((a) => `*${a}*`).join("\n") + "\n\n"
+        : "") +
+      `✅ Kategoriyasi: *${spendingCat.name}*\n\n` +
+      `🧑‍💻 Xodim: *${user.username}*\n\n` +
+      `📝 Izoh: *${comment}*\n\n` +
+      `Hurmat bilan, sizning moliyaviy yordamchingiz 🧾`;
+
+    bot.api.sendMessage(user.chatId, text, { parse_mode: "Markdown" });
+
     return await ctx.reply(
       "✅ Yangi CHIQIM muvaffaqiyatli qo'shildi!",
       mainKeyboard

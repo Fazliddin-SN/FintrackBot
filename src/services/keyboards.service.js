@@ -1,6 +1,9 @@
 const mainKeyboard = {
   reply_markup: {
-    keyboard: [["💰 Kirim qo‘shish", "💸 Chiqim qo‘shish"]],
+    keyboard: [
+      [{ text: "💰 Kirim qo‘shish" }, { text: "💸 Chiqim qo‘shish" }],
+      [{ text: "📊 Hisobot" }],
+    ],
     resize_keyboard: true,
     one_time_keyboard: true,
     selective: true,
@@ -23,4 +26,8 @@ const confirmCancelKeyboard = {
   },
 };
 
-module.exports = { mainKeyboard, cancelKeyboard, confirmCancelKeyboard };
+module.exports = {
+  mainKeyboard,
+  cancelKeyboard,
+  confirmCancelKeyboard,
+};

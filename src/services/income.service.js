@@ -5,7 +5,7 @@ const {
   mainKeyboard,
   confirmCancelKeyboard,
 } = require("../services/keyboards.service");
-
+const { updateCurrentBalance } = require("../utils/helper");
 async function addIncome(conversation, ctx) {
   const inlineKeyboard = new InlineKeyboard()
     .text("💵 Naqd So'mda", "uzs_cash")
@@ -126,7 +126,7 @@ async function addIncome(conversation, ctx) {
     category_id,
   };
 
-  await ctx.reply("📝 Yangi CHIQIM qo‘shilsinmi?", confirmCancelKeyboard);
+  await ctx.reply("📝 Yangi Kirim qo‘shilsinmi?", confirmCancelKeyboard);
   msg = await conversation.wait();
   const confirmText = msg.message.text?.trim();
 
@@ -138,10 +138,15 @@ async function addIncome(conversation, ctx) {
     );
   }
 
-  if (confirmText === "✅ Tasdiqlash") {
-    await Income.create(body);
+  if (confirmText == "✅ Tasdiqlash") {
+    const newIncome = await Income.create(body);
+    console.log("new income ", newIncome);
+
+    //update current balance
+    // updateCurrentBalance(newIncome, true);
+
     return await ctx.reply(
-      "✅ Yangi CHIQIM muvaffaqiyatli qo'shildi!",
+      "✅ Yangi Kirim muvaffaqiyatli qo'shildi!",
       mainKeyboard
     );
   }
